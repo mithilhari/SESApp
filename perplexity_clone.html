@@ -402,15 +402,7 @@
         let searchHistory = [];
         let configVisible = false;
 
-        // API Configuration
-        const API_ENDPOINTS = {
-            serpapi: 'https://serpapi.com/search.json',
-            brave: 'https://api.search.brave.com/res/v1/web/search',
-            serper: 'https://google.serper.dev/search',
-            openai: 'https://api.openai.com/v1/chat/completions',
-            groq: 'https://api.groq.com/openai/v1/chat/completions',
-            cohere: 'https://api.cohere.ai/v1/generate'
-        };
+        // Remove API endpoints and parsing functions since they're now handled by the backend
 
         function toggleConfig() {
             configVisible = !configVisible;
@@ -434,78 +426,28 @@
                 throw new Error('Please configure your search API key');
             }
 
-            let url, options;
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: query,
+                    provider: searchProvider,
+                    apiKey: searchApiKey
+                })
+            });
 
-            switch (searchProvider) {
-                case 'serpapi':
-                    url = `${API_ENDPOINTS.serpapi}?engine=google&q=${encodeURIComponent(query)}&api_key=${searchApiKey}`;
-                    options = { method: 'GET' };
-                    break;
-                    
-                case 'brave':
-                    url = `${API_ENDPOINTS.brave}?q=${encodeURIComponent(query)}`;
-                    options = {
-                        method: 'GET',
-                        headers: {
-                            'X-Subscription-Token': searchApiKey,
-                            'Accept': 'application/json'
-                        }
-                    };
-                    break;
-                    
-                case 'serper':
-                    url = API_ENDPOINTS.serper;
-                    options = {
-                        method: 'POST',
-                        headers: {
-                            'X-API-KEY': searchApiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ q: query })
-                    };
-                    break;
-            }
-
-            const response = await fetch(url, options);
             if (!response.ok) {
-                throw new Error(`Search API error: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Search API error: ${response.status}`);
             }
 
             const data = await response.json();
-            return parseSearchResults(data, searchProvider);
+            return data.results;
         }
 
-        function parseSearchResults(data, provider) {
-            let results = [];
 
-            switch (provider) {
-                case 'serpapi':
-                    results = data.organic_results?.map(result => ({
-                        title: result.title,
-                        url: result.link,
-                        snippet: result.snippet
-                    })) || [];
-                    break;
-                    
-                case 'brave':
-                    results = data.web?.results?.map(result => ({
-                        title: result.title,
-                        url: result.url,
-                        snippet: result.description
-                    })) || [];
-                    break;
-                    
-                case 'serper':
-                    results = data.organic?.map(result => ({
-                        title: result.title,
-                        url: result.link,
-                        snippet: result.snippet
-                    })) || [];
-                    break;
-            }
-
-            return results.slice(0, 6); // Limit to 6 results
-        }
 
         async function generateAIResponse(query, searchResults) {
             const { aiApiKey, aiProvider } = getApiKeys();
@@ -514,91 +456,26 @@
                 throw new Error('Please configure your AI API key');
             }
 
-            const context = searchResults.map(result => 
-                `Title: ${result.title}\nURL: ${result.url}\nSnippet: ${result.snippet}`
-            ).join('\n\n');
+            const response = await fetch('/api/ai-generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: query,
+                    searchResults: searchResults,
+                    provider: aiProvider,
+                    apiKey: aiApiKey
+                })
+            });
 
-            const prompt = `Based on the following search results, provide a comprehensive and accurate answer to the query: "${query}"
-
-Search Results:
-${context}
-
-Please provide a detailed, informative response that synthesizes information from these sources. Be factual and cite relevant information where appropriate.`;
-
-            let url, options;
-
-            switch (aiProvider) {
-                case 'openai':
-                    url = API_ENDPOINTS.openai;
-                    options = {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${aiApiKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: 'gpt-3.5-turbo',
-                            messages: [
-                                { role: 'user', content: prompt }
-                            ],
-                            max_tokens: 500,
-                            temperature: 0.7
-                        })
-                    };
-                    break;
-                    
-                case 'groq':
-                    url = API_ENDPOINTS.groq;
-                    options = {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${aiApiKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: 'mixtral-8x7b-32768',
-                            messages: [
-                                { role: 'user', content: prompt }
-                            ],
-                            max_tokens: 500,
-                            temperature: 0.7
-                        })
-                    };
-                    break;
-                    
-                case 'cohere':
-                    url = API_ENDPOINTS.cohere;
-                    options = {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${aiApiKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            prompt: prompt,
-                            max_tokens: 500,
-                            temperature: 0.7
-                        })
-                    };
-                    break;
-            }
-
-            const response = await fetch(url, options);
             if (!response.ok) {
-                throw new Error(`AI API error: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `AI API error: ${response.status}`);
             }
 
             const data = await response.json();
-            
-            switch (aiProvider) {
-                case 'openai':
-                case 'groq':
-                    return data.choices[0].message.content;
-                case 'cohere':
-                    return data.generations[0].text;
-                default:
-                    return 'Unable to generate AI response';
-            }
+            return data.response;
         }
 
         function showLoading() {
