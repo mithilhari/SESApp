@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SearchAI - AI-Powered Search Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tagline {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+
+        .search-container {
+            position: relative;
+            max-width: 700px;
+            margin: 0 auto 30px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 18px 60px 18px 20px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            background: white;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .search-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        .api-config {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .api-config h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .api-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .api-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .api-input-group label {
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .api-input {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.9);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .api-input:focus {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .results-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+
+        .ai-response {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .ai-response h3 {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+        }
+
+        .ai-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .response-text {
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .sources-section h3 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .source-item {
+            padding: 16px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 12px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s ease;
+        }
+
+        .source-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(4px);
+        }
+
+        .source-title {
+            font-weight: 600;
+            color: #333;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .source-title:hover {
+            color: #667eea;
+        }
+
+        .source-url {
+            color: #666;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .source-snippet {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-top: 8px;
+        }
+
+        .error {
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            color: #d63031;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .suggestion-tag {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .suggestion-tag:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .toggle-config {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-config:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .config-hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .logo {
+                font-size: 2rem;
+            }
+            
+            .search-box {
+                padding: 16px 55px 16px 18px;
+                font-size: 15px;
+            }
+            
+            .result-card {
+                padding: 20px;
+            }
+
+            .api-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="logo">🔍 SearchAI</h1>
+            <p class="tagline">Real AI-powered search engine with live web results</p>
+            
+            <button class="toggle-config" onclick="toggleConfig()">⚙️ Configure APIs</button>
+            
+            <div class="api-config" id="apiConfig">
+                <h3>🔑 API Configuration</h3>
+                <div class="api-inputs">
+                    <div class="api-input-group">
+                        <label for="searchApiKey">Search API Key (SerpAPI/Brave):</label>
+                        <input type="password" id="searchApiKey" class="api-input" placeholder="Enter your search API key">
+                    </div>
+                    <div class="api-input-group">
+                        <label for="aiApiKey">AI API Key (OpenAI/Groq):</label>
+                        <input type="password" id="aiApiKey" class="api-input" placeholder="Enter your AI API key">
+                    </div>
+                    <div class="api-input-group">
+                        <label for="searchProvider">Search Provider:</label>
+                        <select id="searchProvider" class="api-input">
+                            <option value="serpapi">SerpAPI (100 free/month)</option>
+                            <option value="brave">Brave Search (2000 free/month)</option>
+                            <option value="serper">Serper.dev (2500 free/month)</option>
+                        </select>
+                    </div>
+                    <div class="api-input-group">
+                        <label for="aiProvider">AI Provider:</label>
+                        <select id="aiProvider" class="api-input">
+                            <option value="openai">OpenAI GPT</option>
+                            <option value="groq">Groq (Free tier)</option>
+                            <option value="cohere">Cohere (Free tier)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" class="search-box" placeholder="Ask anything..." id="searchInput">
+                <button class="search-btn" id="searchBtn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="suggestions">
+                <div class="suggestion-tag" onclick="performSearch('What is artificial intelligence?')">What is AI?</div>
+                <div class="suggestion-tag" onclick="performSearch('Latest technology trends 2025')">Tech trends 2025</div>
+                <div class="suggestion-tag" onclick="performSearch('How does machine learning work?')">Machine Learning</div>
+                <div class="suggestion-tag" onclick="performSearch('Best programming languages to learn')">Programming</div>
+                <div class="suggestion-tag" onclick="performSearch('Climate change solutions')">Climate Change</div>
+            </div>
+        </div>
+
+        <div class="results-container" id="resultsContainer"></div>
+    </div>
+
+    <script>
+        let searchHistory = [];
+        let configVisible = false;
+
+        // API Configuration
+        const API_ENDPOINTS = {
+            serpapi: 'https://serpapi.com/search.json',
+            brave: 'https://api.search.brave.com/res/v1/web/search',
+            serper: 'https://google.serper.dev/search',
+            openai: 'https://api.openai.com/v1/chat/completions',
+            groq: 'https://api.groq.com/openai/v1/chat/completions',
+            cohere: 'https://api.cohere.ai/v1/generate'
+        };
+
+        function toggleConfig() {
+            configVisible = !configVisible;
+            const config = document.getElementById('apiConfig');
+            config.classList.toggle('config-hidden', !configVisible);
+        }
+
+        function getApiKeys() {
+            return {
+                searchApiKey: document.getElementById('searchApiKey').value,
+                aiApiKey: document.getElementById('aiApiKey').value,
+                searchProvider: document.getElementById('searchProvider').value,
+                aiProvider: document.getElementById('aiProvider').value
+            };
+        }
+
+        async function performRealSearch(query) {
+            const { searchApiKey, searchProvider } = getApiKeys();
+            
+            if (!searchApiKey) {
+                throw new Error('Please configure your search API key');
+            }
+
+            let url, options;
+
+            switch (searchProvider) {
+                case 'serpapi':
+                    url = `${API_ENDPOINTS.serpapi}?engine=google&q=${encodeURIComponent(query)}&api_key=${searchApiKey}`;
+                    options = { method: 'GET' };
+                    break;
+                    
+                case 'brave':
+                    url = `${API_ENDPOINTS.brave}?q=${encodeURIComponent(query)}`;
+                    options = {
+                        method: 'GET',
+                        headers: {
+                            'X-Subscription-Token': searchApiKey,
+                            'Accept': 'application/json'
+                        }
+                    };
+                    break;
+                    
+                case 'serper':
+                    url = API_ENDPOINTS.serper;
+                    options = {
+                        method: 'POST',
+                        headers: {
+                            'X-API-KEY': searchApiKey,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ q: query })
+                    };
+                    break;
+            }
+
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`Search API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return parseSearchResults(data, searchProvider);
+        }
+
+        function parseSearchResults(data, provider) {
+            let results = [];
+
+            switch (provider) {
+                case 'serpapi':
+                    results = data.organic_results?.map(result => ({
+                        title: result.title,
+                        url: result.link,
+                        snippet: result.snippet
+                    })) || [];
+                    break;
+                    
+                case 'brave':
+                    results = data.web?.results?.map(result => ({
+                        title: result.title,
+                        url: result.url,
+                        snippet: result.description
+                    })) || [];
+                    break;
+                    
+                case 'serper':
+                    results = data.organic?.map(result => ({
+                        title: result.title,
+                        url: result.link,
+                        snippet: result.snippet
+                    })) || [];
+                    break;
+            }
+
+            return results.slice(0, 6); // Limit to 6 results
+        }
+
+        async function generateAIResponse(query, searchResults) {
+            const { aiApiKey, aiProvider } = getApiKeys();
+            
+            if (!aiApiKey) {
+                throw new Error('Please configure your AI API key');
+            }
+
+            const context = searchResults.map(result => 
+                `Title: ${result.title}\nURL: ${result.url}\nSnippet: ${result.snippet}`
+            ).join('\n\n');
+
+            const prompt = `Based on the following search results, provide a comprehensive and accurate answer to the query: "${query}"
+
+Search Results:
+${context}
+
+Please provide a detailed, informative response that synthesizes information from these sources. Be factual and cite relevant information where appropriate.`;
+
+            let url, options;
+
+            switch (aiProvider) {
+                case 'openai':
+                    url = API_ENDPOINTS.openai;
+                    options = {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${aiApiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-3.5-turbo',
+                            messages: [
+                                { role: 'user', content: prompt }
+                            ],
+                            max_tokens: 500,
+                            temperature: 0.7
+                        })
+                    };
+                    break;
+                    
+                case 'groq':
+                    url = API_ENDPOINTS.groq;
+                    options = {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${aiApiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'mixtral-8x7b-32768',
+                            messages: [
+                                { role: 'user', content: prompt }
+                            ],
+                            max_tokens: 500,
+                            temperature: 0.7
+                        })
+                    };
+                    break;
+                    
+                case 'cohere':
+                    url = API_ENDPOINTS.cohere;
+                    options = {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${aiApiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            prompt: prompt,
+                            max_tokens: 500,
+                            temperature: 0.7
+                        })
+                    };
+                    break;
+            }
+
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`AI API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            switch (aiProvider) {
+                case 'openai':
+                case 'groq':
+                    return data.choices[0].message.content;
+                case 'cohere':
+                    return data.generations[0].text;
+                default:
+                    return 'Unable to generate AI response';
+            }
+        }
+
+        function showLoading() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Searching the web and generating AI response...</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                    <br><br>
+                    <small>Make sure to configure your API keys above. Get free keys from:</small>
+                    <br>
+                    <small>• SerpAPI: serpapi.com (100 free searches/month)</small>
+                    <br>
+                    <small>• Brave Search: brave.com/search/api (2000 free/month)</small>
+                    <br>
+                    <small>• Groq: groq.com (Free AI inference)</small>
+                </div>
+            `;
+        }
+
+        function displayResults(query, aiResponse, searchResults) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            let resultsHTML = `
+                <div class="result-card ai-response">
+                    <h3>
+                        <div class="ai-icon">🤖</div>
+                        AI Summary
+                    </h3>
+                    <div class="response-text">${aiResponse}</div>
+                </div>
+                
+                <div class="result-card">
+                    <h3>
+                        <div class="ai-icon">📚</div>
+                        Sources
+                    </h3>
+                    <div class="sources-section">
+            `;
+
+            searchResults.forEach(result => {
+                resultsHTML += `
+                    <div class="source-item">
+                        <a href="${result.url}" class="source-title" target="_blank">${result.title}</a>
+                        <a href="${result.url}" class="source-url" target="_blank">${result.url}</a>
+                        <div class="source-snippet">${result.snippet}</div>
+                    </div>
+                `;
+            });
+
+            resultsHTML += `
+                    </div>
+                </div>
+            `;
+
+            resultsContainer.innerHTML = resultsHTML;
+        }
+
+        async function performSearch(query = null) {
+            const searchInput = document.getElementById('searchInput');
+            const searchQuery = query || searchInput.value.trim();
+            
+            if (!searchQuery) return;
+
+            // Update input if query was passed directly
+            if (query) {
+                searchInput.value = query;
+            }
+
+            // Add to search history
+            searchHistory.push(searchQuery);
+
+            // Show loading state
+            showLoading();
+
+            try {
+                // Perform real search
+                const searchResults = await performRealSearch(searchQuery);
+                
+                // Generate AI response
+                const aiResponse = await generateAIResponse(searchQuery, searchResults);
+                
+                // Display results
+                displayResults(searchQuery, aiResponse, searchResults);
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                showError(error.message);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('searchBtn').addEventListener('click', () => performSearch());
+        
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        // Auto-focus search input
+        document.getElementById('searchInput').focus();
+
+        // Hide config by default
+        toggleConfig();
+    </script>
+</body>
+</html>
